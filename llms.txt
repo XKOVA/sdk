@@ -1,0 +1,161 @@
+XKOVA Public SDK (workspace)
+============================
+Location: repository root
+
+This folder is a standalone pnpm workspace containing the public XKOVA SDK packages:
+- @xkova/sdk
+- @xkova/sdk-core
+- @xkova/sdk-react
+- @xkova/sdk-react-ui
+- @xkova/sdk-browser
+- @xkova/sdk-agent
+
+Start Here (package READMEs)
+----------------------------
+- README.md
+- packages/sdk/README.md
+- packages/sdk-core/README.md
+- packages/sdk-react/README.md
+- packages/sdk-react-ui/README.md
+- packages/sdk-browser/README.md
+- packages/sdk-agent/README.md
+
+Package Summary
+---------------
+@xkova/sdk
+- Umbrella SDK package; exposes core/headless, React, UI, Node, browser, telemetry, and ABI entry points.
+
+@xkova/sdk-core
+- Headless (non-React) SDK for OAuth and apps/api; typed services and helpers for server or headless browser integrations.
+
+@xkova/sdk-react
+- React provider, hooks, and agent helpers for browser-based React apps.
+
+@xkova/sdk-react-ui
+- Optional UI components for apps using @xkova/sdk-react; Tailwind/shadcn-compatible.
+
+@xkova/sdk-browser
+- Vanilla browser helpers for launching the XKOVA IEE (SafeApprove) iframe and receiving a receipt via strict postMessage validation.
+
+Entry Points & Exports (from package.json)
+------------------------------------------
+@xkova/sdk
+- @xkova/sdk
+- @xkova/sdk/core
+- @xkova/sdk/node
+- @xkova/sdk/react
+- @xkova/sdk/ui
+- @xkova/sdk/ui/styles.css
+- @xkova/sdk/browser
+- @xkova/sdk/telemetry
+- @xkova/sdk/telemetry-adapters
+- @xkova/sdk/abis
+
+@xkova/sdk-core
+- @xkova/sdk-core
+- @xkova/sdk-core/core
+- @xkova/sdk-core/telemetry
+- @xkova/sdk-core/telemetry-adapters
+- @xkova/sdk-core/abis
+- @xkova/sdk-core/node
+
+@xkova/sdk-react
+- @xkova/sdk-react
+
+@xkova/sdk-react-ui
+- @xkova/sdk-react-ui
+- @xkova/sdk-react-ui/utils
+- @xkova/sdk-react-ui/styles.css
+
+@xkova/sdk-browser
+- @xkova/sdk-browser
+
+Requirements (from READMEs / package metadata)
+----------------------------------------------
+- Node >= 20 for all SDK packages (engines in each package.json).
+- ESM-only: @xkova/sdk, @xkova/sdk-core, @xkova/sdk-react, @xkova/sdk-react-ui.
+- React 16.8+ required for @xkova/sdk-react and @xkova/sdk-react-ui.
+- @xkova/sdk-browser is browser-only (DOM required; not compatible with SSR/Node.js).
+
+Key Concepts (from READMEs)
+---------------------------
+Hosts (sdk-core):
+- OAuth base URL and apps/api host are distinct. Headless helpers require explicit hosts.
+- resolveApiBaseUrl builds a safe apps/api base URL from an apiHost.
+
+IEE (SafeApprove) receipts:
+- Receipt-gated write operations require an IEE (SafeApprove) receipt.
+- @xkova/sdk-browser provides launchIee and createBrowserIeeReceiptProvider for browser flows.
+- @xkova/sdk-react handles IEE when XKOVAProvider is configured with a receipt provider.
+
+Source Map (top-level src files / folders)
+------------------------------------------
+@xkova/sdk (packages/sdk/src/)
+- index.ts
+- core.ts
+- node.ts
+- react.ts
+- ui.ts
+- browser.ts
+- telemetry.ts
+- telemetry-adapters.ts
+- abis.ts
+
+@xkova/sdk-core (packages/sdk-core/src/)
+- core.ts
+- node.ts
+- telemetry.ts
+- telemetry-adapters.ts
+- api-client.ts
+- api-url.ts
+- auth-url.ts
+- blockchain.ts
+- clients.ts
+- constants.ts
+- errors.ts
+- http.ts
+- iee-orchestration.ts
+- oauth.ts
+- services.ts
+- storage.ts
+- types.ts
+- abis/
+- agents/
+- payments/
+- signing/
+- transactions/
+
+@xkova/sdk-react (packages/sdk-react/src/)
+- index.ts
+- provider.ts
+- auth.ts
+- sessions.ts
+- profile.ts
+- balances.ts
+- contacts.ts
+- payments.ts
+- payment-requests.ts
+- transfers.ts
+- transactions.ts
+- tenant.ts
+- email-change.ts
+- agents.ts
+- useIeeLauncher.ts
+- useIeeReceiptAction.ts
+- resources.ts
+- shared.ts
+- agents/
+
+@xkova/sdk-react-ui (packages/sdk-react-ui/src/)
+- index.ts
+- components/
+- utils.ts
+- toast-utils.tsx
+
+@xkova/sdk-browser (packages/sdk-browser/src/)
+- index.ts
+
+Workspace Commands (from README.md)
+--------------------------------------------------------
+- pnpm install
+- pnpm -r build

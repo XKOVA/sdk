@@ -1,0 +1,482 @@
+/**
+ * Base error for all SDK failures.
+ *
+ * @remarks
+ * Purpose:
+ * - Provide a consistent error shape with stable `code` identifiers.
+ *
+ * When to use:
+ * - Catch and branch on `code` or `name` when handling SDK failures.
+ *
+ * When not to use:
+ * - Do not throw SDKError directly unless you are extending the SDK internals.
+ *
+ * Parameters:
+ * - `message`: Human-readable error message. Nullable: no.
+ * - `code`: Canonical SDK error code. Nullable: yes (defaults to "unknown").
+ * - `status`: Optional HTTP status code. Nullable: yes.
+ * - `details`: Optional response payload for debugging. Nullable: yes.
+ * - `meta`: Optional request metadata. Nullable: yes.
+ *
+ * Return semantics:
+ * - Constructs an Error subclass with SDK-specific metadata.
+ *
+ * Errors/failure modes:
+ * - None; constructor does not throw.
+ *
+ * Side effects:
+ * - None.
+ *
+ * Invariants/assumptions:
+ * - `code` is one of SDKErrorCode values.
+ *
+ * Data/auth references:
+ * - `meta` may include request identifiers from OAuth/apps/api responses.
+ */
+export class SDKError extends Error {
+    constructor(message, code = "unknown", status, details, meta) {
+        super(message);
+        this.name = "SDKError";
+        this.code = code;
+        this.status = status;
+        this.details = details;
+        this.meta = meta;
+    }
+}
+/**
+ * Error raised when IEE (SafeApprove) receipt orchestration fails or is blocked.
+ *
+ * @remarks
+ * Purpose:
+ * - Communicate receipt requirements, cancellations, and IEE (SafeApprove) flow failures.
+ *
+ * When to use:
+ * - Thrown by IEE (SafeApprove) orchestration in sdk-core or sdk-react integrations.
+ *
+ * When not to use:
+ * - Do not use for general HTTP or OAuth failures.
+ *
+ * Parameters:
+ * - `message`: Human-readable error message. Nullable: no.
+ * - `code`: IEE (SafeApprove)-specific error code. Nullable: no.
+ * - `details`: Optional IEE (SafeApprove)-specific details (action types, provider code). Nullable: yes.
+ * - `meta`: Optional request metadata. Nullable: yes.
+ *
+ * Return semantics:
+ * - Constructs an SDKError with IEE (SafeApprove)-specific code and details.
+ *
+ * Errors/failure modes:
+ * - None; constructor does not throw.
+ *
+ * Side effects:
+ * - None.
+ *
+ * Invariants/assumptions:
+ * - `code` is one of IeeErrorCode values.
+ */
+export class IeeError extends SDKError {
+    constructor(message, code, details, meta) {
+        super(message, code, undefined, details, meta);
+        this.name = "IeeError";
+        this.details = details;
+    }
+}
+/**
+ * Raised when the network request fails before a response is available.
+ *
+ * @remarks
+ * Purpose:
+ * - Represent network-layer failures (DNS, connection reset, CORS).
+ *
+ * When to use:
+ * - Catch to distinguish connectivity problems from server responses.
+ *
+ * When not to use:
+ * - Do not use for HTTP error responses; those map to OAuthError/ServerError/etc.
+ *
+ * Parameters:
+ * - `message`: Human-readable error message. Nullable: yes (defaults to "Network error").
+ * - `details`: Optional error payload. Nullable: yes.
+ * - `meta`: Optional request metadata. Nullable: yes.
+ *
+ * Return semantics:
+ * - Constructs a NetworkError with `code = "network"`.
+ *
+ * Errors/failure modes:
+ * - None; constructor does not throw.
+ *
+ * Side effects:
+ * - None.
+ *
+ * Invariants/assumptions:
+ * - Indicates failure before an HTTP response is available.
+ *
+ * Data/auth references:
+ * - May include request URL/method metadata when available.
+ */
+export class NetworkError extends SDKError {
+    constructor(message, details, meta) {
+        super(message, "network", undefined, details, meta);
+        this.name = "NetworkError";
+    }
+}
+/**
+ * Raised when a request exceeded the configured timeout budget.
+ *
+ * @remarks
+ * Purpose:
+ * - Represent client-enforced timeout failures.
+ *
+ * When to use:
+ * - Catch when you need to retry or show timeout-specific messaging.
+ *
+ * When not to use:
+ * - Do not treat as a server error; the request may not have reached the server.
+ *
+ * Parameters:
+ * - `message`: Human-readable error message. Nullable: yes (defaults to "Request timed out").
+ * - `details`: Optional error payload. Nullable: yes.
+ * - `meta`: Optional request metadata. Nullable: yes.
+ *
+ * Return semantics:
+ * - Constructs a TimeoutError with `code = "timeout"`.
+ *
+ * Errors/failure modes:
+ * - None; constructor does not throw.
+ *
+ * Side effects:
+ * - None.
+ *
+ * Invariants/assumptions:
+ * - Indicates timeout budget elapsed for the request.
+ *
+ * Data/auth references:
+ * - May include request URL/method metadata when available.
+ */
+export class TimeoutError extends SDKError {
+    constructor(message = "Request timed out", details, meta) {
+        super(message, "timeout", undefined, details, meta);
+        this.name = "TimeoutError";
+    }
+}
+/**
+ * Raised when a request was explicitly aborted/cancelled by the caller.
+ *
+ * @remarks
+ * Purpose:
+ * - Distinguish cancellation from network/server failures.
+ *
+ * When to use:
+ * - Catch when you want to ignore user-initiated cancellations.
+ *
+ * When not to use:
+ * - Do not treat as a retryable error; the caller intentionally aborted.
+ *
+ * Parameters:
+ * - `message`: Human-readable error message. Nullable: yes (defaults to "Request aborted").
+ * - `details`: Optional error payload. Nullable: yes.
+ * - `meta`: Optional request metadata. Nullable: yes.
+ *
+ * Return semantics:
+ * - Constructs an AbortedError with `code = "aborted"`.
+ *
+ * Errors/failure modes:
+ * - None; constructor does not throw.
+ *
+ * Side effects:
+ * - None.
+ *
+ * Invariants/assumptions:
+ * - Indicates a deliberate abort or cancellation signal.
+ *
+ * Data/auth references:
+ * - May include request URL/method metadata when available.
+ */
+export class AbortedError extends SDKError {
+    constructor(message = "Request aborted", details, meta) {
+        super(message, "aborted", undefined, details, meta);
+        this.name = "AbortedError";
+    }
+}
+/**
+ * Raised when the OAuth server responds with an error payload.
+ *
+ * @remarks
+ * Purpose:
+ * - Normalize OAuth error responses into SDKError form.
+ *
+ * When to use:
+ * - Catch to handle OAuth error codes and descriptions from the auth server.
+ *
+ * When not to use:
+ * - Do not use for apps/api errors; those map to ServerError/BadResponseError.
+ *
+ * Parameters:
+ * - `message`: Human-readable error message. Nullable: no.
+ * - `status`: HTTP status code from OAuth server. Nullable: yes.
+ * - `details`: OAuth error payload. Nullable: yes.
+ * - `meta`: Optional request metadata. Nullable: yes.
+ *
+ * Return semantics:
+ * - Constructs an OAuthError with `code = "oauth"`.
+ *
+ * Errors/failure modes:
+ * - None; constructor does not throw.
+ *
+ * Side effects:
+ * - None.
+ *
+ * Invariants/assumptions:
+ * - `details` may include `error`/`error_description`.
+ *
+ * Data/auth references:
+ * - Raised from oauth-server responses.
+ */
+export class OAuthError extends SDKError {
+    constructor(message, status, details, meta) {
+        super(message, "oauth", status, details, meta);
+        this.name = "OAuthError";
+    }
+}
+/**
+ * Raised when inputs do not meet validation requirements.
+ *
+ * @remarks
+ * Purpose:
+ * - Surface local validation failures before issuing network requests.
+ *
+ * When to use:
+ * - Catch to show input validation errors to the user.
+ *
+ * When not to use:
+ * - Do not use to represent server-side validation errors; those return BadResponseError.
+ *
+ * Parameters:
+ * - `message`: Human-readable error message. Nullable: no.
+ * - `details`: Optional validation detail payload. Nullable: yes.
+ * - `meta`: Optional request metadata. Nullable: yes.
+ *
+ * Return semantics:
+ * - Constructs a ValidationError with `code = "validation"`.
+ *
+ * Errors/failure modes:
+ * - None; constructor does not throw.
+ *
+ * Side effects:
+ * - None.
+ *
+ * Invariants/assumptions:
+ * - Represents client-side validation failures.
+ *
+ * Data/auth references:
+ * - None.
+ */
+export class ValidationError extends SDKError {
+    constructor(message, details, meta) {
+        super(message, "validation", undefined, details, meta);
+        this.name = "ValidationError";
+    }
+}
+/**
+ * Raised when authentication fails or tokens are missing.
+ *
+ * @remarks
+ * Purpose:
+ * - Normalize missing/expired credentials into a typed error.
+ *
+ * When to use:
+ * - Catch to trigger logout or re-auth flows.
+ *
+ * When not to use:
+ * - Do not use for insufficient scope; those are surfaced as OAuthError/BadResponseError.
+ *
+ * Parameters:
+ * - `message`: Human-readable error message. Nullable: yes (defaults to "Authentication required").
+ * - `status`: Optional HTTP status code. Nullable: yes.
+ * - `details`: Optional error payload. Nullable: yes.
+ * - `meta`: Optional request metadata. Nullable: yes.
+ *
+ * Return semantics:
+ * - Constructs an UnauthorizedError with `code = "unauthorized"`.
+ *
+ * Errors/failure modes:
+ * - None; constructor does not throw.
+ *
+ * Side effects:
+ * - None.
+ *
+ * Invariants/assumptions:
+ * - Indicates missing or invalid auth context.
+ *
+ * Data/auth references:
+ * - Often raised on 401 responses from OAuth/apps/api.
+ */
+export class UnauthorizedError extends SDKError {
+    constructor(message = "Authentication required", status, details, meta) {
+        super(message, "unauthorized", status, details, meta);
+        this.name = "UnauthorizedError";
+    }
+}
+/**
+ * Raised when a requested resource is not found (HTTP 404).
+ *
+ * @remarks
+ * Purpose:
+ * - Provide a typed error for missing resources returned by API or OAuth endpoints.
+ *
+ * When to use:
+ * - Catch to show "not found" UX or to branch on missing resources.
+ *
+ * When not to use:
+ * - Do not use for authorization failures; those map to UnauthorizedError/OAuthError.
+ *
+ * Parameters:
+ * - `message`: Human-readable error message. Nullable: yes (defaults to "Not found").
+ * - `status`: HTTP status code (typically 404). Nullable: yes.
+ * - `details`: Optional response payload for debugging. Nullable: yes.
+ * - `meta`: Optional request metadata (request id, url, method). Nullable: yes.
+ *
+ * Return semantics:
+ * - Constructs a NotFoundError with `code = "not_found"`.
+ *
+ * Errors/failure modes:
+ * - None; this constructor does not throw.
+ *
+ * Side effects:
+ * - None.
+ *
+ * Invariants/assumptions:
+ * - `status` is expected to be 404 when provided.
+ *
+ * Data/auth references:
+ * - Raised from apps/api and oauth-server 404 responses.
+ *
+ * @example
+ * throw new NotFoundError("Resource not found", 404, payload, meta);
+ */
+export class NotFoundError extends SDKError {
+    constructor(message = "Not found", status, details, meta) {
+        super(message, "not_found", status, details, meta);
+        this.name = "NotFoundError";
+    }
+}
+/**
+ * Raised when a request is rate limited (HTTP 429).
+ *
+ * @remarks
+ * Purpose:
+ * - Provide a typed error for rate limit responses.
+ *
+ * When to use:
+ * - Catch to implement backoff, retries, or user messaging for throttling.
+ *
+ * When not to use:
+ * - Do not treat as a validation error; the request may succeed later.
+ *
+ * Parameters:
+ * - `message`: Human-readable error message. Nullable: yes (defaults to "Rate limited").
+ * - `status`: HTTP status code (typically 429). Nullable: yes.
+ * - `details`: Optional response payload. Nullable: yes.
+ * - `meta`: Optional request metadata. Nullable: yes.
+ *
+ * Return semantics:
+ * - Constructs a RateLimitedError with `code = "rate_limited"`.
+ *
+ * Errors/failure modes:
+ * - None; constructor does not throw.
+ *
+ * Side effects:
+ * - None.
+ *
+ * Invariants/assumptions:
+ * - `status` is expected to be 429 when provided.
+ *
+ * Data/auth references:
+ * - Raised from apps/api and oauth-server responses with rate limits.
+ */
+export class RateLimitedError extends SDKError {
+    constructor(message = "Rate limited", status, details, meta) {
+        super(message, "rate_limited", status, details, meta);
+        this.name = "RateLimitedError";
+    }
+}
+/**
+ * Raised when a server returns a 5xx error response.
+ *
+ * @remarks
+ * Purpose:
+ * - Provide a typed error for server-side failures.
+ *
+ * When to use:
+ * - Catch to display fallback messaging or trigger retries.
+ *
+ * When not to use:
+ * - Do not use for network failures; those are NetworkError/TimeoutError.
+ *
+ * Parameters:
+ * - `message`: Human-readable error message. Nullable: yes (defaults to "Server error").
+ * - `status`: HTTP status code. Nullable: yes.
+ * - `details`: Optional response payload. Nullable: yes.
+ * - `meta`: Optional request metadata. Nullable: yes.
+ *
+ * Return semantics:
+ * - Constructs a ServerError with `code = "server_error"`.
+ *
+ * Errors/failure modes:
+ * - None; constructor does not throw.
+ *
+ * Side effects:
+ * - None.
+ *
+ * Invariants/assumptions:
+ * - `status` is typically >= 500 when provided.
+ *
+ * Data/auth references:
+ * - Raised from apps/api and oauth-server 5xx responses.
+ */
+export class ServerError extends SDKError {
+    constructor(message = "Server error", status, details, meta) {
+        super(message, "server_error", status, details, meta);
+        this.name = "ServerError";
+    }
+}
+/**
+ * Raised when a response payload is malformed or unexpected.
+ *
+ * @remarks
+ * Purpose:
+ * - Surface schema/format mismatches between the SDK and backend responses.
+ *
+ * When to use:
+ * - Catch to report API contract mismatches or show a generic error.
+ *
+ * When not to use:
+ * - Do not use for application-level validation failures; those are ValidationError.
+ *
+ * Parameters:
+ * - `message`: Human-readable error message. Nullable: yes (defaults to "Invalid response").
+ * - `status`: HTTP status code. Nullable: yes.
+ * - `details`: Optional response payload. Nullable: yes.
+ * - `meta`: Optional request metadata. Nullable: yes.
+ *
+ * Return semantics:
+ * - Constructs a BadResponseError with `code = "bad_response"`.
+ *
+ * Errors/failure modes:
+ * - None; constructor does not throw.
+ *
+ * Side effects:
+ * - None.
+ *
+ * Invariants/assumptions:
+ * - Indicates a mismatch between expected and actual response shapes.
+ *
+ * Data/auth references:
+ * - Raised from apps/api and oauth-server responses when parsing fails.
+ */
+export class BadResponseError extends SDKError {
+    constructor(message = "Invalid response", status, details, meta) {
+        super(message, "bad_response", status, details, meta);
+        this.name = "BadResponseError";
+    }
+}

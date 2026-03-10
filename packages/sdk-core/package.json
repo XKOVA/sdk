@@ -1,0 +1,78 @@
+{
+  "name": "@xkova/sdk-core",
+  "version": "0.1.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "description": "Core (non-React) SDK for XKOVA auth, agents, and account-aware utilities.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/XKOVA/sdk.git",
+    "directory": "packages/sdk-core"
+  },
+  "homepage": "https://github.com/XKOVA/sdk",
+  "bugs": {
+    "url": "https://github.com/XKOVA/sdk/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "main": "dist/core.js",
+  "module": "dist/core.js",
+  "types": "dist/core.d.ts",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rm -rf dist",
+    "lint": "eslint \"src/**/*.ts\"",
+    "test": "pnpm build && node --import ./tests/register-loader.mjs --test tests/*.test.js"
+  },
+  "dependencies": {
+    "viem": "^2.21.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "@typescript-eslint/parser": "^8.38.0",
+    "eslint": "^9.17.0",
+    "typescript": "^5.7.2"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/core.d.ts",
+      "import": "./dist/core.js",
+      "default": "./dist/core.js"
+    },
+    "./core": {
+      "types": "./dist/core.d.ts",
+      "import": "./dist/core.js",
+      "default": "./dist/core.js"
+    },
+    "./telemetry": {
+      "types": "./dist/telemetry.d.ts",
+      "import": "./dist/telemetry.js",
+      "default": "./dist/telemetry.js"
+    },
+    "./telemetry-adapters": {
+      "types": "./dist/telemetry-adapters.d.ts",
+      "import": "./dist/telemetry-adapters.js",
+      "default": "./dist/telemetry-adapters.js"
+    },
+    "./abis": {
+      "types": "./dist/abis/index.d.ts",
+      "import": "./dist/abis/index.js",
+      "default": "./dist/abis/index.js"
+    },
+    "./node": {
+      "types": "./dist/node.d.ts",
+      "import": "./dist/node.js",
+      "default": "./dist/node.js"
+    }
+  }
+}

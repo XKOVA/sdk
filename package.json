@@ -1,0 +1,31 @@
+{
+  "name": "xkova-public-sdk-workspace",
+  "private": true,
+  "license": "Apache-2.0",
+  "packageManager": "pnpm@10.19.0",
+  "scripts": {
+    "build": "pnpm --filter @xkova/sdk-core build && pnpm --filter @xkova/sdk-browser build && pnpm --filter @xkova/sdk-react build && pnpm --filter @xkova/sdk-react-ui build && pnpm --filter @xkova/sdk build && pnpm --filter @xkova/sdk-agent build",
+    "build:sorted": "pnpm -r --sort build",
+    "build:serial": "pnpm -r --sort --workspace-concurrency=1 build",
+    "clean": "pnpm -r clean",
+    "lint": "pnpm -r lint",
+    "test": "pnpm --filter @xkova/sdk-core test && pnpm --filter @xkova/sdk-browser test && pnpm --filter @xkova/sdk-react test && pnpm --filter @xkova/sdk-react-ui test && pnpm --filter @xkova/sdk test && pnpm --filter @xkova/sdk-agent test",
+    "changeset": "changeset",
+    "version-packages": "changeset version",
+    "publish:sequential": "node ./scripts/publish-sequential.mjs",
+    "release": "pnpm build && pnpm publish:sequential",
+    "check:publint": "publint packages/sdk --strict && publint packages/sdk-core --strict && publint packages/sdk-react --strict && publint packages/sdk-react-ui --strict && publint packages/sdk-browser --strict && publint packages/sdk-agent --strict",
+    "check:attw": "bash -lc 'status=0; attw --pack packages/sdk --profile esm-only --exclude-entrypoints ./ui/styles.css --format table || status=1; attw --pack packages/sdk-core --profile esm-only --format table || status=1; attw --pack packages/sdk-react --profile esm-only --format table || status=1; attw --pack packages/sdk-react-ui --profile esm-only --exclude-entrypoints ./styles.css --format table || status=1; attw --pack packages/sdk-browser --profile esm-only --format table || status=1; attw --pack packages/sdk-agent --profile esm-only --format table || status=1; exit $status'"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.2",
+    "@changesets/cli": "^2.29.7",
+    "@typescript-eslint/eslint-plugin": "8.54.0",
+    "publint": "^0.3.18"
+  },
+  "pnpm": {
+    "overrides": {
+      "ox": "0.10.6"
+    }
+  }
+}

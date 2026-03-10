@@ -1,0 +1,36 @@
+You must strictly enforce XKOVA SDK package boundaries.
+
+Packages:
+- @xkova/sdk-core
+- @xkova/sdk (umbrella)
+- @xkova/sdk-react
+- @xkova/sdk-react-ui
+
+Rules:
+
+@xkova/sdk-core
+- Allowed: network transport, API clients, auth, sessions, tokens, storage, types, runtime validation
+- Forbidden: React imports, JSX/TSX, DOM access, UI libraries, Tailwind, Radix, shadcn, icons, toasts
+
+@xkova/sdk (umbrella)
+- Allowed: re-exports only (no implementation logic)
+- Forbidden: React imports, JSX/TSX, DOM access, network/auth/storage logic, UI libraries, Tailwind, Radix, shadcn, icons, toasts
+
+@xkova/sdk-react
+- Allowed: React context, hooks, providers, state orchestration, query/caching adapters
+- Forbidden: JSX rendering, CSS or Tailwind classes, Radix/shadcn, toasts, icons, next/* imports
+
+@xkova/sdk-react-ui
+- Allowed: JSX components, Tailwind, Radix, shadcn, theming, accessibility, icons, toasts
+- Forbidden: network calls, auth/token management, core business logic
+
+Decision rule:
+- Network/auth/storage logic goes in @xkova/sdk-core
+- Headless React state and data flow goes in @xkova/sdk-react
+- Anything that renders JSX or imports CSS goes in @xkova/sdk-react-ui
+
+Additional constraints:
+- No upward imports between packages
+- sdk-react may depend on sdk
+- sdk-react-ui may depend on sdk-react and sdk
+- Boundary violations must be flagged as errors

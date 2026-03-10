@@ -1,0 +1,95 @@
+{
+  "name": "@xkova/sdk",
+  "version": "0.1.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "description": "Umbrella XKOVA SDK package (core + react + ui). Use subpath exports: @xkova/sdk/core, /react, /ui, /node.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/XKOVA/sdk.git",
+    "directory": "packages/sdk"
+  },
+  "homepage": "https://github.com/XKOVA/sdk",
+  "bugs": {
+    "url": "https://github.com/XKOVA/sdk/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "sideEffects": [
+    "./ui/styles.css"
+  ],
+  "files": [
+    "dist",
+    "ui/styles.css",
+    "README.md"
+  ],
+  "scripts": {
+    "prebuild": "pnpm --filter @xkova/sdk-react-ui build",
+    "build": "tsc -p tsconfig.json",
+    "clean": "rm -rf dist",
+    "lint": "eslint \"src/**/*.{ts,tsx}\"",
+    "test": "pnpm build && node --test tests/*.test.js"
+  },
+  "dependencies": {
+    "@xkova/sdk-browser": "workspace:^",
+    "@xkova/sdk-core": "workspace:^",
+    "@xkova/sdk-react": "workspace:^",
+    "@xkova/sdk-react-ui": "workspace:^"
+  },
+  "peerDependencies": {
+    "react": ">=16.8.0",
+    "react-dom": ">=16.8.0",
+    "sonner": "^1.5.1"
+  },
+  "devDependencies": {
+    "@typescript-eslint/parser": "^8.38.0",
+    "eslint": "^9.17.0",
+    "typescript": "^5.7.2"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./core": {
+      "types": "./dist/core.d.ts",
+      "import": "./dist/core.js"
+    },
+    "./node": {
+      "types": "./dist/node.d.ts",
+      "import": "./dist/node.js"
+    },
+    "./react": {
+      "types": "./dist/react.d.ts",
+      "import": "./dist/react.js"
+    },
+    "./ui": {
+      "types": "./dist/ui.d.ts",
+      "import": "./dist/ui.js"
+    },
+    "./telemetry": {
+      "types": "./dist/telemetry.d.ts",
+      "import": "./dist/telemetry.js"
+    },
+    "./telemetry-adapters": {
+      "types": "./dist/telemetry-adapters.d.ts",
+      "import": "./dist/telemetry-adapters.js"
+    },
+    "./abis": {
+      "types": "./dist/abis.d.ts",
+      "import": "./dist/abis.js"
+    },
+    "./browser": {
+      "types": "./dist/browser.d.ts",
+      "import": "./dist/browser.js"
+    },
+    "./ui/styles.css": "./ui/styles.css"
+  }
+}

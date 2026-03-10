@@ -1,83 +1,95 @@
-# XKOVA SDK
+# XKOVA Public SDK
 
-**Authenticate humans and agents in minutes. One SDK for Web2 sessions, Web3 wallets, and agentic payments.**
+XKOVA public SDK workspace containing:
 
-Stop juggling bearer tokens and wallet connectors. XKOVA SDK gives you session-first authentication that works for browsers, AI agents, and smart accounts. Built with the same security stack that powers the XKOVA Platform.
+- `@xkova/sdk`
+- `@xkova/sdk-core`
+- `@xkova/sdk-react`
+- `@xkova/sdk-react-ui`
+- `@xkova/sdk-browser`
+- `@xkova/sdk-agent`
 
----
+## Canonical Quickstart (external developers)
 
-## Why XKOVA SDK?
+### 1. Platform prerequisites
 
-### Ship auth in one line
-Add login to your app without the OAuth ceremony. No token management, no wallet integration hell, no config headaches. Just authentication that works.
+The SDK requires XKOVA platform configuration before app code can authenticate.
 
-### Built-in test mode
-Every app gets test and live environments out of the box. Switch between them like Stripe's test mode. No separate deployments needed.
+- Create an OAuth client for your web app (`application_type=web`).
+- Configure redirect URI and allowed origin for your app host.
+- For agent runtimes, create a service and service credential (`SERVICE_ID`, `SERVICE_CREDENTIAL`).
 
-### Works with agents
-Not just humans. Authenticate AI agents, issue scoped operation tokens, and let autonomous systems transact safely under your control.
+### 2. Choose a starter
 
----
+- Web/BFF starter: XKOVA Playground (external starter repository)
+- Agent starter: Simple Subscription Agent (external starter repository)
 
-## What you get
+### 3. Install
 
-**Session-first security**  
-HTTP-only cookies. CSRF protection. Automatic refresh. No tokens in localStorage. No XSS risk.
+```bash
+pnpm add @xkova/sdk
+# or npm install @xkova/sdk
+```
 
-**Multi-tenant by default**  
-Manage multiple apps under one account. Each tenant gets its own OAuth clients, API keys, and user pools. Perfect for SaaS builders.
+### 4. Mount provider + first authenticated read
 
-**Web3-native primitives**  
-Connect EOA wallets, deploy smart accounts, and coordinate signing operations without writing custom Web3 code.
+```tsx
+import { XKOVAProvider, useAuth } from "@xkova/sdk/react";
 
-**Built for scale**  
-Rate limiting. Audit logs. Session management. Webhook delivery. The same infrastructure powering XKOVA Platform.
+function AuthStatus() {
+  const { status, user } = useAuth();
+  return <pre>{JSON.stringify({ status, email: user?.email ?? null }, null, 2)}</pre>;
+}
 
----
+export default function App() {
+  return (
+    <XKOVAProvider
+      baseUrl={process.env.NEXT_PUBLIC_XKOVA_AUTH_URL!}
+      clientId={process.env.NEXT_PUBLIC_XKOVA_CLIENT_ID!}
+      appLoginUrl="/auth/login"
+      appTokenEndpoint="/api/token"
+      appSessionEndpoint="/api/auth/session"
+      appLogoutEndpoint="/api/logout"
+    >
+      <AuthStatus />
+    </XKOVAProvider>
+  );
+}
+```
 
-## Features
+## Package docs
 
-- **One-line authentication**: Users sign in with email, wallet, or social. You get a session.
-- **Permission scopes**: Fine-grained access control for users and agents.
-- **Multi-factor auth**: OTP, passkeys, wallet signatures included.
-- **OAuth clients**: Create and manage OAuth apps for third-party integrations.
-- **Webhooks**: Real-time notifications for auth events.
-- **Admin console**: Manage users, view sessions, configure branding.
-- **React hooks**: Drop-in components for auth UI.
-- **TypeScript first**: Full type safety with generated types.
+- Umbrella entry points and exports: [@xkova/sdk README](./packages/sdk/README.md)
+- Headless services and OAuth helpers: [@xkova/sdk-core README](./packages/sdk-core/README.md)
+- Agent primitives: [@xkova/sdk-agent README](./packages/sdk-agent/README.md)
 
----
+## Workspace development
 
-## Built for developers
+Run from repository root:
 
-XKOVA SDK is the same stack we use internally. When we build a feature for the platform, it ships in the SDK. No second-class APIs.
+```bash
+pnpm install
+pnpm build
+pnpm lint
+pnpm test
+```
 
-**Local development mode.** Test environments with synthetic data. Full documentation with examples. Type hints in your editor.
+Ordered build:
 
----
+```bash
+pnpm -r --sort build
+```
 
-## Who it's for
+Explicit build order:
 
-**SaaS builders**: Multi-tenant auth with test/live environments out of the box.
+```bash
+pnpm --filter @xkova/sdk-core build
+pnpm --filter @xkova/sdk-react build
+pnpm --filter @xkova/sdk-react-ui build
+pnpm --filter @xkova/sdk build
+pnpm --filter @xkova/sdk-agent build
+```
 
-**Web3 developers**: Unified auth for wallets and traditional logins. No more dual auth systems.
+## License
 
-**AI teams**: Authenticate agents alongside humans. Issue scoped tokens for autonomous operations.
-
-**Product teams**: Ship login flows fast. Focus on your product, not OAuth plumbing.
-
----
-
-## Status
-
-We're building this alongside the new XKOVA Platform. The SDK is in active development. Early access opens soon.
-
-**Want to help shape the SDK?**  
-Join the waitlist for access: [Discord](https://discord.gg/EZP5YDekfQ)
-
-**Questions?**  
-Reach out at `hello@xkova.com` or open an issue on [GitHub](https://github.com/xkova/sdk)
-
----
-
-© 2025 XKOVA
+Licensed under the Apache License, Version 2.0. See [LICENSE](./LICENSE).

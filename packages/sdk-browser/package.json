@@ -1,0 +1,50 @@
+{
+  "name": "@xkova/sdk-browser",
+  "version": "0.1.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "description": "Vanilla browser helpers for launching the XKOVA IEE popup/iframe with strict postMessage validation.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/XKOVA/sdk.git",
+    "directory": "packages/sdk-browser"
+  },
+  "homepage": "https://github.com/XKOVA/sdk",
+  "bugs": {
+    "url": "https://github.com/XKOVA/sdk/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "type": "module",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rm -rf dist",
+    "lint": "eslint \"src/**/*.ts\"",
+    "test": "pnpm build && node --test tests/*.test.js"
+  },
+  "devDependencies": {
+    "@typescript-eslint/parser": "^8.38.0",
+    "eslint": "^9.17.0",
+    "typescript": "^5.7.2"
+  },
+  "dependencies": {
+    "@xkova/sdk-core": "workspace:^"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  }
+}
