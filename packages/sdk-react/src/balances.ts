@@ -14,6 +14,26 @@ import { useAccountState, useTenantConfig } from "./tenant.js";
 import { useResourceInvalidation } from "./resources.js";
 import { resolvePollingFallbackMs } from "./realtime.js";
 
+const normalizeNetworkId = (value: unknown): string => {
+  if (value === undefined || value === null) return "";
+  return String(value).trim();
+};
+
+const resolveTokenNetwork = (
+  token: Pick<TokenAsset, "networkId"> | null | undefined,
+  networks: TenantNetwork[],
+  fallbackNetwork: TenantNetwork | null,
+): TenantNetwork | null => {
+  const tokenNetworkId = normalizeNetworkId(token?.networkId);
+  if (tokenNetworkId) {
+    const matchedNetwork = networks.find(
+      (network) => normalizeNetworkId(network?.networkId) === tokenNetworkId,
+    );
+    if (matchedNetwork) return matchedNetwork;
+  }
+  return fallbackNetwork;
+};
+
 /**
  * Options for {@link useHumanBalance}.
  *
@@ -171,7 +191,7 @@ export const useHumanBalance = (options?: HumanBalanceOptions): HumanBalanceStat
   const [error, setError] = useState<Error | null>(null);
   const enabled = options?.enabled ?? true;
 
-  const resolvedNetwork = useMemo(() => {
+  const fallbackNetwork = useMemo(() => {
     try {
       return selectTenantNetwork(networks);
     } catch {
@@ -182,6 +202,10 @@ export const useHumanBalance = (options?: HumanBalanceOptions): HumanBalanceStat
   const resolvedToken = useMemo(() => {
     return tenantTokens?.find((t) => t.isPrimary || t.isDefault) ?? tenantTokens?.[0];
   }, [tenantTokens]);
+
+  const resolvedNetwork = useMemo(() => {
+    return resolveTokenNetwork(resolvedToken, networks, fallbackNetwork);
+  }, [resolvedToken, networks, fallbackNetwork]);
 
   const resolvedAccount = useMemo(() => account ?? null, [account]);
 
@@ -461,7 +485,7 @@ export const useTokenBalances = (options?: TokenBalancesOptions): TokenBalancesS
   const showNative = options?.showNative ?? false;
   const refreshMs = resolvePollingFallbackMs(options?.refreshMs, realtime);
 
-  const network = useMemo(() => {
+  const fallbackNetwork = useMemo(() => {
     try {
       return selectTenantNetwork(networks);
     } catch {
@@ -476,7 +500,7 @@ export const useTokenBalances = (options?: TokenBalancesOptions): TokenBalancesS
   useResourceInvalidation("balances", handleRefresh);
 
   useEffect(() => {
-    if (!account || !network) {
+    if (!account || !fallbackNetwork) {
       // Preserve reference when already empty to avoid render loops from unstable dependencies upstream.
       setBalances((current) => (current.length > 0 ? [] : current));
       setIsLoading(false);
@@ -491,19 +515,28 @@ export const useTokenBalances = (options?: TokenBalancesOptions): TokenBalancesS
       const results: TokenBalanceEntry[] = [];
       try {
         const forceProxy = typeof window !== "undefined";
-        const client = createTenantNetworkClient(
-          network,
-          undefined,
-          apiBaseUrl,
-          getAccessToken,
-          forceProxy,
-        );
+        const clientsByNetworkId = new Map<string, ReturnType<typeof createTenantNetworkClient>>();
+        const getClientForNetwork = (targetNetwork: TenantNetwork) => {
+          const key = normalizeNetworkId(targetNetwork?.networkId);
+          const existing = clientsByNetworkId.get(key);
+          if (existing) return existing;
+          const created = createTenantNetworkClient(
+            targetNetwork,
+            undefined,
+            apiBaseUrl,
+            getAccessToken,
+            forceProxy,
+          );
+          clientsByNetworkId.set(key, created);
+          return created;
+        };
 
         if (showNative) {
           try {
-            const nativeBalance = await getNativeTokenBalance(client, account);
+            const nativeClient = getClientForNetwork(fallbackNetwork);
+            const nativeBalance = await getNativeTokenBalance(nativeClient, account);
             results.push({
-              token: { symbol: network.symbol ?? "ETH", decimals: 18 },
+              token: { symbol: fallbackNetwork.symbol ?? "ETH", decimals: 18 },
               value: nativeBalance,
               isNative: true
             });
@@ -516,6 +549,9 @@ export const useTokenBalances = (options?: TokenBalancesOptions): TokenBalancesS
         for (const token of tokenList) {
           if (!token.contract) continue;
           try {
+            const tokenNetwork = resolveTokenNetwork(token, networks, fallbackNetwork);
+            if (!tokenNetwork) continue;
+            const client = getClientForNetwork(tokenNetwork);
             const value = await getErc20TokenBalance(client, token, account);
             results.push({
               token,
@@ -555,7 +591,7 @@ export const useTokenBalances = (options?: TokenBalancesOptions): TokenBalancesS
       cancelled = true;
       if (timer) clearInterval(timer);
     };
-  }, [account, network, tokens, showNative, apiBaseUrl, getAccessToken, refreshKey, refreshMs]);
+  }, [account, fallbackNetwork, tokens, networks, showNative, apiBaseUrl, getAccessToken, refreshKey, refreshMs]);
 
   return { balances, isLoading, account, accountLoading, configLoading, refresh: handleRefresh, error };
 };
