@@ -32,16 +32,21 @@ function Profile() {
 
 ### Base URL configuration
 
-`XKOVAProvider` expects an OAuth protocol host (origin). Provide one of:
+`XKOVAProvider` expects a core host input (origin, `/auth`, or `/api/vN` path). Provide one of:
 
 - `baseUrl` prop, or
-- `NEXT_PUBLIC_XKOVA_BASE_URL`, `NEXT_PUBLIC_XKOVA_OAUTH_URL`, or `XKOVA_BASE_URL`.
+- `NEXT_PUBLIC_XKOVA_CORE_URL` or `XKOVA_CORE_URL`, or
+- `NEXT_PUBLIC_XKOVA_ENV` / `XKOVA_ENV` (resolved to canonical core host).
 
 For apps/api calls, the provider resolves an API host from:
 
 - `apiBaseUrl` prop, or
-- `NEXT_PUBLIC_XKOVA_API_URL` / `XKOVA_API_URL`, or
+- `NEXT_PUBLIC_XKOVA_CORE_URL` / `XKOVA_CORE_URL` / `NEXT_PUBLIC_XKOVA_ENV` / `XKOVA_ENV`, or
 - the default production host.
+
+Deprecated split-host variables are rejected at runtime:
+`NEXT_PUBLIC_XKOVA_BASE_URL`, `NEXT_PUBLIC_XKOVA_OAUTH_URL`, `XKOVA_BASE_URL`,
+`NEXT_PUBLIC_XKOVA_API_URL`, `XKOVA_API_URL`.
 
 ## Error Handling
 

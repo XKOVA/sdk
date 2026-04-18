@@ -25,6 +25,7 @@ import {
   UserInfo,
   TransferProvider,
 } from './types.js';
+import { resolveCoreAuthBaseUrl } from './runtime-url.js';
 
 const TOKEN_KEY = 'tokens';
 
@@ -273,7 +274,7 @@ const assertIdTokenNonce = (
  * - `input`: OAuth protocol host as an absolute URL. Nullable: no.
  *
  * Return semantics:
- * - Returns the normalized origin string (scheme + host).
+ * - Returns the normalized core auth base URL (`{origin}/auth`).
  *
  * Errors/failure modes:
  * - Throws ValidationError when input is empty or not a valid OAuth host.
@@ -282,10 +283,10 @@ const assertIdTokenNonce = (
  * - None.
  *
  * Invariants/assumptions:
- * - The returned value is always an origin string with no path.
+ * - The returned value always ends with `/auth`.
  *
  * Data/auth references:
- * - Validates OAuth protocol host URLs used for /oauth endpoints.
+ * - Validates core host URLs used for `/auth/oauth/*` endpoints.
  */
 export const normalizeOAuthBaseUrl = (input: string): string => {
   if (!input) {
@@ -299,31 +300,20 @@ export const normalizeOAuthBaseUrl = (input: string): string => {
     throw new ValidationError('baseUrl must be a valid absolute URL');
   }
 
-  const trimmedPath = url.pathname.replace(/\/+$/, '');
-  const withoutOauth = trimmedPath.endsWith('/oauth')
-    ? trimmedPath.slice(0, -'/oauth'.length)
-    : trimmedPath;
-
-  if (withoutOauth && withoutOauth !== '/') {
+  const trimmedPath = url.pathname.replace(/\/+$/, '') || '/';
+  const allowedPath =
+    trimmedPath === '/' ||
+    trimmedPath === '/auth' ||
+    trimmedPath === '/auth/oauth' ||
+    trimmedPath === '/api' ||
+    /^\/api\/v\d+$/.test(trimmedPath);
+  if (!allowedPath) {
     throw new ValidationError(
-      'baseUrl must point to the OAuth protocol host (origin only)',
+      'baseUrl must be the core origin or a supported /auth or /api path',
     );
   }
 
-  const hostname = url.hostname.toLowerCase();
-  // XKOVA protocol host naming: environments use `auth-*.xkova.com` (e.g. auth-local.xkova.com),
-  // and some deployments may use `oauth-*.xkova.com`. Accept both.
-  if (
-    !isLocalhostHostname(hostname) &&
-    !hostname.startsWith('oauth') &&
-    !hostname.startsWith('auth')
-  ) {
-    throw new ValidationError(
-      'baseUrl must be the OAuth protocol host (AUTH_SERVER_URL), not a tenant auth domain',
-    );
-  }
-
-  return `${url.protocol}//${url.host}`;
+  return resolveCoreAuthBaseUrl(input);
 };
 
 /**
@@ -368,6 +358,10 @@ export function shouldUseDevMode(config: {
   const normalized = normalizeOAuthBaseUrl(config.baseUrl);
   const hostname = new URL(normalized).hostname.toLowerCase();
   if (isLocalhostHostname(hostname)) return true;
+  if (hostname === 'core.xkova.com') return false;
+  if (hostname.startsWith('local-core.')) return true;
+  if (hostname.startsWith('dev-core.')) return true;
+  if (hostname.startsWith('staging-core.')) return true;
   return normalized.includes('-test.');
 }
 

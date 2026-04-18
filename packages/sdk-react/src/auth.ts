@@ -1,5 +1,5 @@
 import { useCallback, useMemo } from "react";
-import { ValidationError, type AuthState, type UserInfo } from "@xkova/sdk-core";
+import { detectEnvironment, type AuthState, type UserInfo } from "@xkova/sdk-core";
 import { useSDK } from "./provider.js";
 import { useCachedAvatarUrl } from "./avatar-cache.js";
 import { useCachedProxyAvatarUrl } from "./avatar-proxy-cache.js";
@@ -12,73 +12,6 @@ const isLocalhost = (): boolean => {
     host === "127.0.0.1" ||
     host === "::1"
   );
-};
-
-const isLocalhostHostname = (hostname: string): boolean => {
-  const lower = hostname.toLowerCase();
-  return (
-    lower === "localhost" ||
-    lower === "127.0.0.1" ||
-    lower === "::1" ||
-    lower.endsWith(".localhost")
-  );
-};
-
-// Local environment detection to avoid exporting internal oauth helpers.
-const normalizeOAuthBaseUrl = (input: string): string => {
-  if (!input) {
-    throw new ValidationError("baseUrl is required");
-  }
-
-  let url: URL;
-  try {
-    url = new URL(input);
-  } catch {
-    throw new ValidationError("baseUrl must be a valid absolute URL");
-  }
-
-  const trimmedPath = url.pathname.replace(/\/+$/, "");
-  const withoutOauth = trimmedPath.endsWith("/oauth")
-    ? trimmedPath.slice(0, -"/oauth".length)
-    : trimmedPath;
-
-  if (withoutOauth && withoutOauth !== "/") {
-    throw new ValidationError(
-      "baseUrl must point to the OAuth protocol host (origin only)",
-    );
-  }
-
-  const hostname = url.hostname.toLowerCase();
-  if (
-    !isLocalhostHostname(hostname) &&
-    !hostname.startsWith("oauth") &&
-    !hostname.startsWith("auth")
-  ) {
-    throw new ValidationError(
-      "baseUrl must be the OAuth protocol host (AUTH_SERVER_URL), not a tenant auth domain",
-    );
-  }
-
-  return `${url.protocol}//${url.host}`;
-};
-
-const shouldUseDevMode = (config: {
-  baseUrl: string;
-  environment?: "test" | "production" | "auto";
-}): boolean => {
-  if (config.environment === "test") return true;
-  if (config.environment === "production") return false;
-
-  const normalized = normalizeOAuthBaseUrl(config.baseUrl);
-  const hostname = new URL(normalized).hostname.toLowerCase();
-  if (isLocalhostHostname(hostname)) return true;
-  return normalized.includes("-test.");
-};
-
-const detectEnvironment = (baseUrl: string): "test" | "production" => {
-  return shouldUseDevMode({ baseUrl, environment: "auto" })
-    ? "test"
-    : "production";
 };
 
 /**
@@ -153,12 +86,19 @@ export const useAuth = () => {
     if (!oauth) return null;
     const baseUrl = oauth.getBaseUrl();
     const mode = detectEnvironment(baseUrl);
+    const authDomain = (() => {
+      try {
+        return new URL(baseUrl).origin;
+      } catch {
+        return baseUrl;
+      }
+    })();
     return {
       mode,
       isLocalhost: isLocalhost(),
       isTest: mode === "test",
       isProduction: mode === "production",
-      authDomain: baseUrl
+      authDomain,
     };
   }, [oauth]);
 

@@ -3,12 +3,11 @@ import { createRemoteJWKSet, jwtVerify } from 'jose';
 
 export const TOKEN_REFRESH_WINDOW_MS = 30_000;
 export const XKOVA_ENV_TO_AUTH_URL = Object.freeze({
-  production: 'https://auth.xkova.com',
-  staging: 'https://auth-staging.xkova.com',
-  dev: 'https://auth-dev.xkova.com',
-  local: 'https://auth-local.xkova.com',
+  production: 'https://core.xkova.com',
+  staging: 'https://staging-core.xkova.com',
+  dev: 'https://dev-core.xkova.com',
+  local: 'https://local-core.xkova.com',
 });
-export const DEFAULT_XKOVA_ENV: XkovaEnvironment = 'production';
 
 type AnyRecord = Record<string, any>;
 type UnknownRecord = Record<string, unknown>;
@@ -293,19 +292,32 @@ function isRecord(value: unknown): value is UnknownRecord {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
+const XKOVA_ENVIRONMENT_KEYS = Object.keys(
+  XKOVA_ENV_TO_AUTH_URL,
+) as XkovaEnvironment[];
+
+const XKOVA_ENVIRONMENT_HINT = XKOVA_ENVIRONMENT_KEYS.join(', ');
+
 /**
- * Normalize an XKOVA environment key with production fallback.
+ * Normalize and validate an XKOVA environment key.
  *
  * @param rawValue - Environment value to normalize.
  * @returns One of `production`, `staging`, `dev`, or `local`.
+ * @throws Error when env is missing or unknown.
  */
 export function resolveXkovaEnvironment(rawValue: unknown): XkovaEnvironment {
   const normalized = String(rawValue ?? '').trim().toLowerCase();
-  if (!normalized) return DEFAULT_XKOVA_ENV;
+  if (!normalized) {
+    throw new Error(
+      `xkovaEnv is required. Set one of: ${XKOVA_ENVIRONMENT_HINT}`,
+    );
+  }
   if (Object.prototype.hasOwnProperty.call(XKOVA_ENV_TO_AUTH_URL, normalized)) {
     return normalized as XkovaEnvironment;
   }
-  return DEFAULT_XKOVA_ENV;
+  throw new Error(
+    `Unsupported xkovaEnv "${String(rawValue)}". Expected one of: ${XKOVA_ENVIRONMENT_HINT}`,
+  );
 }
 
 /**
@@ -317,6 +329,26 @@ export function resolveXkovaEnvironment(rawValue: unknown): XkovaEnvironment {
 export function resolveAgentpassBaseUrl(rawValue: unknown): string {
   const env = resolveXkovaEnvironment(rawValue);
   return XKOVA_ENV_TO_AUTH_URL[env];
+}
+
+function normalizeCoreBaseUrl(input: string): string {
+  if (!input) {
+    throw new Error('agentpassBaseUrl is required');
+  }
+
+  let url: URL;
+  try {
+    url = new URL(input);
+  } catch {
+    throw new Error('agentpassBaseUrl must be a valid absolute URL');
+  }
+
+  const path = url.pathname.replace(/\/+$/, '') || '/';
+  if (path !== '/' && path !== '/auth') {
+    throw new Error('agentpassBaseUrl must be the core origin or /auth base URL');
+  }
+
+  return `${url.protocol}//${url.host}`;
 }
 
 /**
@@ -331,11 +363,10 @@ export function resolveJwksUrl(options: ResolveJwksUrlOptions = {}): string {
     return explicitJwks;
   }
 
-  const explicitBase = String(options?.agentpassBaseUrl ?? '')
-    .trim()
-    .replace(/\/+$/, '');
+  const explicitBase = String(options?.agentpassBaseUrl ?? '').trim();
   const baseUrl = explicitBase || resolveAgentpassBaseUrl(options?.xkovaEnv);
-  return `${baseUrl}/.well-known/jwks.json`;
+  const coreBaseUrl = normalizeCoreBaseUrl(baseUrl);
+  return `${coreBaseUrl}/auth/.well-known/jwks.json`;
 }
 
 function normalizeInstallQuestionsVersion(value: unknown): number | null {
@@ -877,7 +908,8 @@ export function buildErc20TransferTx(params: BuildErc20TransferTxParams): BuiltE
  */
 export async function listServiceInstallations(params: ListServiceInstallationsParams): Promise<AnyRecord[]> {
   const { agentpassBaseUrl, serviceId, serviceCredential, logger = defaultLogger } = params;
-  const url = `${agentpassBaseUrl}/agent-services/${serviceId}/installations/service`;
+  const coreBaseUrl = normalizeCoreBaseUrl(agentpassBaseUrl);
+  const url = `${coreBaseUrl}/auth/agent-services/${serviceId}/installations/service`;
   const res = await fetchWithRetry(
     url,
     {
@@ -915,7 +947,8 @@ export async function listServiceInstallations(params: ListServiceInstallationsP
  */
 export async function issueInstallationToken(params: IssueInstallationTokenParams): Promise<IssueInstallationTokenResult> {
   const { agentpassBaseUrl, serviceId, installationId, serviceCredential, logger = defaultLogger } = params;
-  const url = `${agentpassBaseUrl}/agent-services/${serviceId}/installations/${installationId}/tokens`;
+  const coreBaseUrl = normalizeCoreBaseUrl(agentpassBaseUrl);
+  const url = `${coreBaseUrl}/auth/agent-services/${serviceId}/installations/${installationId}/tokens`;
 
   const res = await fetchWithRetry(
     url,
@@ -973,7 +1006,8 @@ export async function signManagedTransaction(params: SignManagedTransactionParam
     logger = defaultLogger,
   } = params;
 
-  const url = `${agentpassBaseUrl}/agents/${agentActorId}/sign`;
+  const coreBaseUrl = normalizeCoreBaseUrl(agentpassBaseUrl);
+  const url = `${coreBaseUrl}/auth/agents/${agentActorId}/sign`;
   const resolvedIdempotencyKey = idempotencyKey || randomUUID();
   const res = await fetchWithRetry(
     url,

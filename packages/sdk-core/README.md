@@ -1,6 +1,6 @@
 # @xkova/sdk-core
 
-Headless (non-React) SDK for XKOVA OAuth and apps/api. This package provides typed services, OAuth helpers, transport utilities, and network helpers for server or headless browser integrations.
+Headless (non-React) SDK for XKOVA core auth and core API. This package provides typed services, OAuth helpers, transport utilities, and network helpers for server or headless browser integrations.
 
 ## Install
 
@@ -17,23 +17,23 @@ pnpm add @xkova/sdk-core
 
 ## Base URL model (explicit hosts)
 
-The SDK uses two different hosts and they must not be confused:
+The SDK uses the core canonical host:
 
-- **OAuth base URL**: OAuth protocol host origin (no path). Example: `https://auth.xkova.com`.
-- **Apps API host**: apps/api host origin (no path). Example: `https://api.xkova.com`.
+- **OAuth base URL**: core auth base URL. Example: `https://core.xkova.com/auth`.
+- **Core API host**: core origin. Example: `https://core.xkova.com`.
 
-Headless helpers **require explicit hosts**. They do not auto-default the API host.
+Headless helpers **require explicit host inputs**.
 
-### Safe apps/api base URL
+### Safe core API base URL
 
 ```ts
 import { resolveApiBaseUrl } from "@xkova/sdk-core";
 
 const apiBaseUrl = resolveApiBaseUrl({
-  apiHost: "https://api.xkova.com",
+  apiHost: "https://core.xkova.com",
   // apiVersion defaults to API_VERSION (v1)
 });
-// -> https://api.xkova.com/api/v1
+// -> https://core.xkova.com/api/v1
 ```
 
 ## Headless services (recommended)
@@ -42,8 +42,8 @@ const apiBaseUrl = resolveApiBaseUrl({
 import { createServicesFromHosts } from "@xkova/sdk-core";
 
 const services = createServicesFromHosts({
-  oauthBaseUrl: process.env.XKOVA_BASE_URL!,
-  apiHost: process.env.XKOVA_API_URL!,
+  oauthBaseUrl: process.env.XKOVA_CORE_URL!,
+  apiHost: process.env.XKOVA_CORE_URL!,
   getAccessToken: async () => accessToken,
 });
 
@@ -59,8 +59,8 @@ If you only need raw clients:
 import { createApiClientsFromHosts } from "@xkova/sdk-core";
 
 const { api, auth } = createApiClientsFromHosts({
-  oauthBaseUrl: process.env.XKOVA_BASE_URL!,
-  apiHost: process.env.XKOVA_API_URL!,
+  oauthBaseUrl: process.env.XKOVA_CORE_URL!,
+  apiHost: process.env.XKOVA_CORE_URL!,
   getAccessToken: async () => accessToken,
 });
 ```
@@ -77,8 +77,8 @@ import {
 } from "@xkova/sdk-core";
 
 const services = createServicesFromHosts({
-  oauthBaseUrl: process.env.XKOVA_BASE_URL!,
-  apiHost: process.env.XKOVA_API_URL!,
+  oauthBaseUrl: process.env.XKOVA_CORE_URL!,
+  apiHost: process.env.XKOVA_CORE_URL!,
   getAccessToken: async () => accessToken,
 });
 
@@ -132,7 +132,7 @@ if (Object.keys(update.errors).length === 0) {
 import { APIClient, resolveApiBaseUrl } from "@xkova/sdk-core";
 
 const api = new APIClient({
-  baseUrl: resolveApiBaseUrl({ apiHost: "https://api.xkova.com" }),
+  baseUrl: resolveApiBaseUrl({ apiHost: "https://core.xkova.com" }),
   getAccessToken: async () => accessToken,
 });
 
@@ -143,7 +143,7 @@ const profile = await api.get("/profile");
 
 ## Headless IEE (SafeApprove) receipts (non-React)
 
-An IEE (SafeApprove) receipt is a signed approval artifact returned by the oauth-server IEE (SafeApprove) UI. It is required for receipt-gated write operations (methods that mention “Requires an IEE (SafeApprove) receipt header” in their JSDoc). The SDK sends the receipt in the `X-XKOVA-IEE-Receipt` header.
+An IEE (SafeApprove) receipt is a signed approval artifact returned by the core auth IEE (SafeApprove) UI. It is required for receipt-gated write operations (methods that mention “Requires an IEE (SafeApprove) receipt header” in their JSDoc). The SDK sends the receipt in the `X-XKOVA-IEE-Receipt` header.
 
 Non-React flows must obtain the receipt in a browser and pass it explicitly into headless service calls.
 
@@ -153,12 +153,12 @@ import { createBrowserIeeReceiptProvider } from "@xkova/sdk-browser";
 
 // Browser-only: requires window/document + postMessage.
 const authApi = new APIClient({
-  baseUrl: "https://auth.example.com",
+  baseUrl: "https://core.xkova.com/auth",
   getAccessToken: async () => accessToken,
 });
 
 const receiptProvider = createBrowserIeeReceiptProvider({
-  ieeUrl: "https://auth.example.com/iee",
+  ieeUrl: "https://core.xkova.com/auth/iee",
   authApi,
 });
 
@@ -172,8 +172,8 @@ const iee = new IeeOrchestrator({
 });
 
 const services = createServicesFromHosts({
-  oauthBaseUrl: "https://auth.example.com",
-  apiHost: "https://api.example.com",
+  oauthBaseUrl: "https://core.xkova.com",
+  apiHost: "https://core.xkova.com",
   getAccessToken: async () => accessToken,
 });
 
@@ -208,8 +208,8 @@ If you already have a receipt (e.g., from your own approval UI), pass it directl
 import { createServicesFromHosts } from "@xkova/sdk-core";
 
 const { sendPayments } = createServicesFromHosts({
-  oauthBaseUrl: process.env.XKOVA_BASE_URL!,
-  apiHost: process.env.XKOVA_API_URL!,
+  oauthBaseUrl: process.env.XKOVA_CORE_URL!,
+  apiHost: process.env.XKOVA_CORE_URL!,
   getAccessToken: () => myTokenStore.getToken(),
 });
 
@@ -230,7 +230,7 @@ import { createBrowserIeeReceiptProvider } from "@xkova/sdk-browser";
 
 const iee = new IeeOrchestrator({
   receiptProvider: createBrowserIeeReceiptProvider({
-    ieeBaseUrl: process.env.XKOVA_BASE_URL!,
+    ieeBaseUrl: process.env.XKOVA_CORE_URL!,
   }),
   contextProvider: () => ({
     tenantId: myApp.tenantId,
@@ -240,8 +240,8 @@ const iee = new IeeOrchestrator({
 });
 
 const { sendPayments } = createServicesFromHosts({
-  oauthBaseUrl: process.env.XKOVA_BASE_URL!,
-  apiHost: process.env.XKOVA_API_URL!,
+  oauthBaseUrl: process.env.XKOVA_CORE_URL!,
+  apiHost: process.env.XKOVA_CORE_URL!,
   getAccessToken: () => myTokenStore.getToken(),
   iee,  // Services will use this orchestrator automatically
 });
@@ -280,7 +280,7 @@ import { buildAuthorizeUrl, exchangeAuthorizationCode, generatePKCE } from "@xko
 
 const pkce = await generatePKCE();
 const authorizeUrl = buildAuthorizeUrl({
-  baseUrl: process.env.XKOVA_BASE_URL!,
+  baseUrl: process.env.XKOVA_CORE_URL!,
   clientId: process.env.XKOVA_CLIENT_ID!,
   redirectUri: process.env.XKOVA_REDIRECT_URI!,
   scopes: ["openid", "profile", "email", "offline_access", "account:read"],
@@ -289,7 +289,7 @@ const authorizeUrl = buildAuthorizeUrl({
 });
 
 const tokens = await exchangeAuthorizationCode({
-  baseUrl: process.env.XKOVA_BASE_URL!,
+  baseUrl: process.env.XKOVA_CORE_URL!,
   clientId: process.env.XKOVA_CLIENT_ID!,
   clientSecret: process.env.XKOVA_CLIENT_SECRET!,
   code,
@@ -309,7 +309,7 @@ const tokens = await exchangeAuthorizationCode({
 
 ```ts
 const api = new APIClient({
-  baseUrl: resolveApiBaseUrl({ apiHost: "https://api.xkova.com" }),
+  baseUrl: resolveApiBaseUrl({ apiHost: "https://core.xkova.com" }),
   retry: { respectRetryAfter: true },
 });
 ```
@@ -324,7 +324,7 @@ const api = new APIClient({
 - `PKCEBundle` — PKCE bundle produced by `generatePKCE`.
 - `generatePKCE` — create a PKCE verifier/challenge/state bundle.
 - `BuildAuthorizeUrlParams` — parameters for `buildAuthorizeUrl`.
-- `buildAuthorizeUrl` — build `/oauth/authorize` URLs.
+- `buildAuthorizeUrl` — build `/auth/oauth/authorize` URLs.
 - `OAuthCallbackParams` — parameters for `parseOAuthCallback`.
 - `parseOAuthCallback` — parse OAuth redirect callback parameters.
 - `ExchangeAuthorizationCodeParams` — parameters for `exchangeAuthorizationCode`.
@@ -358,10 +358,10 @@ const api = new APIClient({
 - `TenantConfig` — tenant config payload.
 - `BootstrapPayload` — bootstrap response payload.
 - `UpdateProfileInput` — input for profile updates.
-- `AccountService` — account metadata service (oauth-server).
-- `TenantConfigService` — tenant config service (oauth-server).
-- `UserProfileService` — user profile service (oauth-server).
-- `SessionManagementService` — session list/revoke service (oauth-server).
+- `AccountService` — account metadata service (core auth `/auth/*`).
+- `TenantConfigService` — tenant config service (core auth `/auth/*`).
+- `UserProfileService` — user profile service (core auth `/auth/*`).
+- `SessionManagementService` — session list/revoke service (core auth `/auth/*`).
 
 #### Contacts
 - `Contact` — contact DTO.
@@ -373,7 +373,7 @@ const api = new APIClient({
 - `BulkContactsOperation` — supported bulk operations.
 - `BulkContactsOperationInput` — bulk operation input.
 - `BulkContactsOperationResult` — bulk operation result.
-- `ContactsService` — contacts service (apps/api).
+- `ContactsService` — contacts service (core API `/api/v1/*`).
 
 #### Transfers + assets
 - `TokenAsset` — token metadata.
@@ -387,7 +387,7 @@ const api = new APIClient({
 - `CreateTransferTransactionInput` — input for creating transfer transactions.
 - `ExecuteFaucetTransferInput` — input for executing faucet transfers.
 - `UpdateTransferTransactionInput` — input for updating transfer transactions.
-- `TransfersService` — transfer transactions service (apps/api).
+- `TransfersService` — transfer transactions service (core API `/api/v1/*`).
 
 #### Transactions + history
 - `TransactionStatus` — transaction status union.
@@ -398,18 +398,18 @@ const api = new APIClient({
 - `TransactionHistoryItem` — transaction history item DTO.
 - `TransactionHistoryResponse` — transaction history response.
 - `TransactionHistoryParams` — query parameters for transaction history.
-- `TransactionHistoryService` — transaction history service (apps/api).
+- `TransactionHistoryService` — transaction history service (core API `/api/v1/*`).
 - `formatTransactionAmount` — format transaction amounts for display.
 
 #### Payments
 - `SendPayment` — send-payment DTO.
 - `SendPaymentsQuery` — send-payment list query.
 - `SendPaymentsListResult` — send-payment list response.
-- `SendPaymentsService` — send-payment service (apps/api).
+- `SendPaymentsService` — send-payment service (core API `/api/v1/*`).
 - `PaymentRequest` — payment request DTO.
 - `PaymentRequestsQuery` — payment request list query.
 - `PaymentRequestsListResponse` — payment request list response.
-- `PaymentRequestsService` — payment request service (apps/api).
+- `PaymentRequestsService` — payment request service (core API `/api/v1/*`).
 
 #### Agents
 - `AgentDescriptor` — agent descriptor payload.
@@ -426,14 +426,14 @@ const api = new APIClient({
 - `PrepareInstallationResponse` — prepare response payload.
 - `ConfirmInstallationRequest` — input for agent installation confirm.
 - `ConfirmInstallationResponse` — confirm response payload.
-- `MarketplaceCatalogService` — marketplace catalog service (oauth-server).
-- `AgentActionsService` — agent install/budget actions service (oauth-server).
+- `MarketplaceCatalogService` — marketplace catalog service (core auth `/auth/*`).
+- `AgentActionsService` — agent install/budget actions service (core auth `/auth/*`).
 - `IssueInstallationTokenParams` — input for installation token issuance.
 - `issueInstallationToken` — issue/refresh installation tokens.
 
 #### Clients + factories + storage
 - `APIClientOptions` — API client configuration.
-- `APIClient` — HTTP client for oauth-server/apps/api.
+- `APIClient` — HTTP client for core auth + core API.
 - `HeadlessClientOptions` — headless host/client options.
 - `createApiClientsFromHosts` — build API clients from explicit hosts.
 - `createServicesFromHosts` — build services from explicit hosts.
@@ -442,10 +442,10 @@ const api = new APIClient({
 - `MemoryStorage` — in-memory storage adapter.
 - `AuthStorage` — storage wrapper with namespacing.
 - `createDefaultStorage` — in-memory AuthStorage factory.
-- `API_BASE_URL` — default apps/api host constant.
-- `API_VERSION` — default apps/api version constant.
-- `normalizeApiHost` — normalize apps/api host.
-- `resolveApiBaseUrl` — build apps/api base URL.
+- `API_BASE_URL` — default core host constant.
+- `API_VERSION` — default API version constant.
+- `normalizeApiHost` — normalize core API host.
+- `resolveApiBaseUrl` — build core API base URL.
 
 #### IEE (SafeApprove) orchestration
 - `CANONICAL_SERVER_ACTION_TYPES` — canonical server action list.

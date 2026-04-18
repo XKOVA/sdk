@@ -56,8 +56,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 import { createServicesFromHosts } from "@xkova/sdk";
 
 const services = createServicesFromHosts({
-  oauthBaseUrl: process.env.XKOVA_BASE_URL!,
-  apiHost: process.env.XKOVA_API_URL!,
+  oauthBaseUrl: process.env.XKOVA_CORE_URL!,
+  apiHost: process.env.XKOVA_CORE_URL!,
   getAccessToken: async () => accessToken,
 });
 ```
@@ -72,7 +72,7 @@ const services = createServicesFromHosts({
 - `PKCEBundle` — PKCE bundle produced by `generatePKCE`.
 - `generatePKCE` — create a PKCE verifier/challenge/state bundle.
 - `BuildAuthorizeUrlParams` — parameters for `buildAuthorizeUrl`.
-- `buildAuthorizeUrl` — build `/oauth/authorize` URLs.
+- `buildAuthorizeUrl` — build `/auth/oauth/authorize` URLs.
 - `OAuthCallbackParams` — parameters for `parseOAuthCallback`.
 - `parseOAuthCallback` — parse OAuth redirect callback parameters.
 - `ExchangeAuthorizationCodeParams` — parameters for `exchangeAuthorizationCode`.
@@ -106,10 +106,10 @@ const services = createServicesFromHosts({
 - `TenantConfig` — tenant config payload.
 - `BootstrapPayload` — bootstrap response payload.
 - `UpdateProfileInput` — input for profile updates.
-- `AccountService` — account metadata service (oauth-server).
-- `TenantConfigService` — tenant config service (oauth-server).
-- `UserProfileService` — user profile service (oauth-server).
-- `SessionManagementService` — session list/revoke service (oauth-server).
+- `AccountService` — account metadata service (core auth `/auth/*`).
+- `TenantConfigService` — tenant config service (core auth `/auth/*`).
+- `UserProfileService` — user profile service (core auth `/auth/*`).
+- `SessionManagementService` — session list/revoke service (core auth `/auth/*`).
 
 #### Contacts
 - `Contact` — contact DTO.
@@ -121,7 +121,7 @@ const services = createServicesFromHosts({
 - `BulkContactsOperation` — supported bulk operations.
 - `BulkContactsOperationInput` — bulk operation input.
 - `BulkContactsOperationResult` — bulk operation result.
-- `ContactsService` — contacts service (apps/api).
+- `ContactsService` — contacts service (core API `/api/v1/*`).
 
 #### Transfers + assets
 - `TokenAsset` — token metadata.
@@ -135,7 +135,7 @@ const services = createServicesFromHosts({
 - `CreateTransferTransactionInput` — input for creating transfer transactions.
 - `ExecuteFaucetTransferInput` — input for executing faucet transfers.
 - `UpdateTransferTransactionInput` — input for updating transfer transactions.
-- `TransfersService` — transfer transactions service (apps/api).
+- `TransfersService` — transfer transactions service (core API `/api/v1/*`).
 
 #### Transactions + history
 - `TransactionStatus` — transaction status union.
@@ -146,18 +146,18 @@ const services = createServicesFromHosts({
 - `TransactionHistoryItem` — transaction history item DTO.
 - `TransactionHistoryResponse` — transaction history response.
 - `TransactionHistoryParams` — query parameters for transaction history.
-- `TransactionHistoryService` — transaction history service (apps/api).
+- `TransactionHistoryService` — transaction history service (core API `/api/v1/*`).
 - `formatTransactionAmount` — format transaction amounts for display.
 
 #### Payments
 - `SendPayment` — send-payment DTO.
 - `SendPaymentsQuery` — send-payment list query.
 - `SendPaymentsListResult` — send-payment list response.
-- `SendPaymentsService` — send-payment service (apps/api).
+- `SendPaymentsService` — send-payment service (core API `/api/v1/*`).
 - `PaymentRequest` — payment request DTO.
 - `PaymentRequestsQuery` — payment request list query.
 - `PaymentRequestsListResponse` — payment request list response.
-- `PaymentRequestsService` — payment request service (apps/api).
+- `PaymentRequestsService` — payment request service (core API `/api/v1/*`).
 
 #### Agents
 - `AgentDescriptor` — agent descriptor payload.
@@ -174,14 +174,14 @@ const services = createServicesFromHosts({
 - `PrepareInstallationResponse` — prepare response payload.
 - `ConfirmInstallationRequest` — input for agent installation confirm.
 - `ConfirmInstallationResponse` — confirm response payload.
-- `MarketplaceCatalogService` — marketplace catalog service (oauth-server).
-- `AgentActionsService` — agent install/budget actions service (oauth-server).
+- `MarketplaceCatalogService` — marketplace catalog service (core auth `/auth/*`).
+- `AgentActionsService` — agent install/budget actions service (core auth `/auth/*`).
 - `IssueInstallationTokenParams` — input for installation token issuance.
 - `issueInstallationToken` — issue/refresh installation tokens.
 
 #### Clients + factories + storage
 - `APIClientOptions` — API client configuration.
-- `APIClient` — HTTP client for oauth-server/apps/api.
+- `APIClient` — HTTP client for core auth + core API.
 - `HeadlessClientOptions` — headless host/client options.
 - `createApiClientsFromHosts` — build API clients from explicit hosts.
 - `createServicesFromHosts` — build services from explicit hosts.
@@ -190,10 +190,10 @@ const services = createServicesFromHosts({
 - `MemoryStorage` — in-memory storage adapter.
 - `AuthStorage` — storage wrapper with namespacing.
 - `createDefaultStorage` — in-memory AuthStorage factory.
-- `API_BASE_URL` — default apps/api host constant.
-- `API_VERSION` — default apps/api version constant.
-- `normalizeApiHost` — normalize apps/api host.
-- `resolveApiBaseUrl` — build apps/api base URL.
+- `API_BASE_URL` — default core host constant.
+- `API_VERSION` — default API version constant.
+- `normalizeApiHost` — normalize core API host.
+- `resolveApiBaseUrl` — build core API base URL.
 
 #### IEE (SafeApprove) orchestration
 - `CANONICAL_SERVER_ACTION_TYPES` — canonical server action list.

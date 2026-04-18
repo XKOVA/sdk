@@ -17,7 +17,9 @@ The SDK requires XKOVA platform configuration before app code can authenticate.
 
 - Create an OAuth client for your web app (`application_type=web`).
 - Configure redirect URI and allowed origin for your app host.
-- For agent runtimes, create a service and service credential (`SERVICE_ID`, `SERVICE_CREDENTIAL`).
+- For agent runtimes, create a service and service credential (`SERVICE_ID`, `SERVICE_CREDENTIAL`), and configure an explicit runtime target:
+  - Preferred: `XKOVA_CORE_URL`
+  - Shorthand: `XKOVA_ENV` (`local`/`dev`/`staging`/`production`, required when used)
 
 ### 2. Choose a starter
 
@@ -44,7 +46,7 @@ function AuthStatus() {
 export default function App() {
   return (
     <XKOVAProvider
-      baseUrl={process.env.NEXT_PUBLIC_XKOVA_AUTH_URL!}
+      baseUrl={process.env.NEXT_PUBLIC_XKOVA_CORE_URL!}
       clientId={process.env.NEXT_PUBLIC_XKOVA_CLIENT_ID!}
       appLoginUrl="/auth/login"
       appTokenEndpoint="/api/token"

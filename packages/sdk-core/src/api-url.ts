@@ -1,5 +1,6 @@
 import { API_VERSION } from "./constants.js";
 import { ValidationError } from "./errors.js";
+import { normalizeCoreOrigin, resolveCoreApiBaseUrl } from "./runtime-url.js";
 
 /**
  * Normalize and validate the apps/api host origin.
@@ -37,23 +38,7 @@ export const normalizeApiHost = (input: string): string => {
   if (!input) {
     throw new ValidationError("apiHost is required");
   }
-
-  let url: URL;
-  try {
-    url = new URL(input);
-  } catch {
-    throw new ValidationError("apiHost must be a valid absolute URL");
-  }
-
-  const trimmedPath = url.pathname.replace(/\/+$/, "");
-  const withoutApi = trimmedPath.replace(/\/api(\/v\d+)?$/, "");
-  if (withoutApi && withoutApi !== "/") {
-    throw new ValidationError(
-      "apiHost must be an origin or end with /api or /api/vN",
-    );
-  }
-
-  return `${url.protocol}//${url.host}`;
+  return normalizeCoreOrigin(input);
 };
 
 /**
@@ -87,10 +72,8 @@ export const normalizeApiHost = (input: string): string => {
  */
 export const resolveApiBaseUrl = (options: { apiHost: string; apiVersion?: string }): string => {
   const apiHost = normalizeApiHost(options.apiHost);
-  const rawVersion = String(options.apiVersion ?? API_VERSION).trim();
-  if (!rawVersion) {
-    throw new ValidationError("apiVersion is required");
-  }
-  const version = rawVersion.replace(/^\/+/, "");
-  return `${apiHost}/api/${version}`;
+  return resolveCoreApiBaseUrl({
+    coreOrigin: apiHost,
+    apiVersion: options.apiVersion ?? API_VERSION,
+  });
 };

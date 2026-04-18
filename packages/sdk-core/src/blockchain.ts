@@ -34,7 +34,7 @@ import { TenantNetwork, TokenAsset } from './types.js';
  * @property getAccessToken - Optional bearer token getter for authenticated proxy requests (nullable).
  *
  * @example
- * { "network": { "networkId": "43113", "rpcUrl": "https://..." }, "apiBaseUrl": "https://api.xkova.com" }
+ * { "network": { "networkId": "43113", "rpcUrl": "https://..." }, "apiBaseUrl": "https://core.xkova.com" }
  * Data/auth references:
  * - Uses tenant bootstrap `/oauth/tenant` network metadata and apps/api RPC proxy.
  */

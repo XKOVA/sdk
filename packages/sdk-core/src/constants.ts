@@ -39,7 +39,7 @@
  * Data/auth references:
  * - Base origin for apps/api REST requests.
  */
-export const API_BASE_URL = "https://api.xkova.com";
+export const API_BASE_URL = "https://core.xkova.com";
 
 /**
  * Default API version path segment for apps/api routes.
@@ -73,5 +73,4 @@ export const API_BASE_URL = "https://api.xkova.com";
  * - Applies to apps/api endpoints accessed via SDK clients.
  */
 export const API_VERSION = "v1";
-
 

@@ -47,7 +47,7 @@ const IssuanceResponseSchema = z.object({
  * - Uses oauth-server agent service token issuance endpoint.
  */
 export interface IssueInstallationTokenParams {
-  baseUrl: string; // OAuth protocol host, e.g. https://auth.xkova.com
+  baseUrl: string; // Core host origin, e.g. https://core.xkova.com
   serviceId: string;
   installationId: string;
   serviceCredential: string; // Bearer service credential (srv_...)
@@ -104,7 +104,7 @@ export interface IssueInstallationTokenParams {
  * - Access token and service credential are sensitive; avoid logging.
  *
  * Data/auth references:
- * - /agent-services/:serviceId/installations/:installationId/tokens endpoint.
+ * - /auth/agent-services/:serviceId/installations/:installationId/tokens endpoint.
  */
 export async function issueInstallationToken(
   params: IssueInstallationTokenParams,

@@ -17,9 +17,11 @@ import {
   AuthState,
   BootstrapPayload,
   TokenSet,
-  API_BASE_URL,
   API_VERSION,
   ValidationError,
+  normalizeCoreOrigin,
+  resolveCoreApiBaseUrl,
+  resolveCoreOriginForEnvironment,
   IeeService,
   IeeOrchestrator,
   type IeeReceiptProvider
@@ -56,8 +58,97 @@ export type RealtimeStatus = {
 
 const SESSION_CHECK_INTERVAL_MS = 30_000;
 
-const normalizeApiHost = (value: string): string =>
-  value.replace(/\/+$/, "").replace(/\/api(\/v\d+)?$/, "");
+const resolveCoreOriginInput = (value: string | undefined): string | undefined => {
+  if (!value) return undefined;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  if (/^https?:\/\//i.test(trimmed)) {
+    return normalizeCoreOrigin(trimmed);
+  }
+  return resolveCoreOriginForEnvironment(trimmed);
+};
+
+type ProviderEnvSource = Record<string, string | undefined>;
+
+const DEPRECATED_CORE_ENV_KEYS = [
+  "NEXT_PUBLIC_XKOVA_BASE_URL",
+  "NEXT_PUBLIC_XKOVA_OAUTH_URL",
+  "XKOVA_BASE_URL",
+  "NEXT_PUBLIC_XKOVA_API_URL",
+  "XKOVA_API_URL",
+] as const;
+
+const ACTIVE_CORE_ENV_KEYS = [
+  "NEXT_PUBLIC_XKOVA_CORE_URL",
+  "XKOVA_CORE_URL",
+  "NEXT_PUBLIC_XKOVA_ENV",
+  "XKOVA_ENV",
+] as const;
+
+const readEnvVar = (env: ProviderEnvSource, key: string): string | undefined => {
+  const raw = env[key];
+  if (typeof raw !== "string") return undefined;
+  const trimmed = raw.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+};
+
+const findDeprecatedCoreEnvKeys = (
+  env: ProviderEnvSource,
+): Array<(typeof DEPRECATED_CORE_ENV_KEYS)[number]> => {
+  return DEPRECATED_CORE_ENV_KEYS.filter((key) => Boolean(readEnvVar(env, key)));
+};
+
+export const assertNoDeprecatedCoreEnvVars = (
+  env: ProviderEnvSource = (process.env ?? {}) as ProviderEnvSource,
+) => {
+  const deprecatedKeys = findDeprecatedCoreEnvKeys(env);
+  if (deprecatedKeys.length === 0) return;
+
+  throw new Error(
+    `Deprecated SDK env vars detected: ${deprecatedKeys.join(
+      ", ",
+    )}. Use XKOVA_CORE_URL or NEXT_PUBLIC_XKOVA_CORE_URL (optionally XKOVA_ENV/NEXT_PUBLIC_XKOVA_ENV).`,
+  );
+};
+
+export const resolveProviderCoreBaseUrl = (params: {
+  explicitBaseUrl?: string;
+  env?: ProviderEnvSource;
+}): string | undefined => {
+  const env = params.env ?? ((process.env ?? {}) as ProviderEnvSource);
+  assertNoDeprecatedCoreEnvVars(env);
+
+  const explicit = resolveCoreOriginInput(params.explicitBaseUrl);
+  if (explicit) return explicit;
+
+  for (const key of ACTIVE_CORE_ENV_KEYS) {
+    const resolved = resolveCoreOriginInput(readEnvVar(env, key));
+    if (resolved) return resolved;
+  }
+  return undefined;
+};
+
+export const resolveProviderApiCoreOrigin = (params: {
+  explicitApiBaseUrl?: string;
+  resolvedBaseUrl?: string;
+  env?: ProviderEnvSource;
+}): string => {
+  const env = params.env ?? ((process.env ?? {}) as ProviderEnvSource);
+  assertNoDeprecatedCoreEnvVars(env);
+
+  const explicitApiBase = resolveCoreOriginInput(params.explicitApiBaseUrl);
+  if (explicitApiBase) return explicitApiBase;
+
+  for (const key of ACTIVE_CORE_ENV_KEYS) {
+    const resolved = resolveCoreOriginInput(readEnvVar(env, key));
+    if (resolved) return resolved;
+  }
+
+  if (params.resolvedBaseUrl) return normalizeCoreOrigin(params.resolvedBaseUrl);
+  throw new Error(
+    "XKOVAProvider requires a core base URL (set baseUrl prop or NEXT_PUBLIC_XKOVA_CORE_URL/XKOVA_CORE_URL, optionally XKOVA_ENV/NEXT_PUBLIC_XKOVA_ENV)",
+  );
+};
 
 const shouldInvalidateBootstrapSession = (error: unknown): boolean => {
   if (!(error instanceof ValidationError)) return false;
@@ -292,17 +383,11 @@ export const XKOVAProvider = ({
   requireExplicitReceipt = false,
   enableRealtime = true,
 }: PropsWithChildren<XKOVAProviderProps>) => {
-  const resolvedBaseUrl =
-    baseUrl ??
-    (typeof process !== "undefined"
-      ? (process.env.NEXT_PUBLIC_XKOVA_BASE_URL as string | undefined) ??
-        (process.env.NEXT_PUBLIC_XKOVA_OAUTH_URL as string | undefined) ??
-        (process.env.XKOVA_BASE_URL as string | undefined)
-      : undefined);
+  const resolvedBaseUrl = resolveProviderCoreBaseUrl({ explicitBaseUrl: baseUrl });
 
   if (!resolvedBaseUrl) {
     throw new Error(
-      "XKOVAProvider requires a baseUrl (set baseUrl prop or NEXT_PUBLIC_XKOVA_BASE_URL/NEXT_PUBLIC_XKOVA_OAUTH_URL/XKOVA_BASE_URL)",
+      "XKOVAProvider requires a core base URL (set baseUrl prop or NEXT_PUBLIC_XKOVA_CORE_URL/XKOVA_CORE_URL)",
     );
   }
 
@@ -512,34 +597,19 @@ export const XKOVAProvider = ({
   );
 
   const resolveApiBase = useCallback((): string => {
-    if (apiBaseUrl) return normalizeApiHost(apiBaseUrl);
+    return resolveProviderApiCoreOrigin({
+      explicitApiBaseUrl: apiBaseUrl,
+      resolvedBaseUrl,
+    });
+  }, [apiBaseUrl, resolvedBaseUrl]);
 
-    const envUrl =
-      (typeof process !== "undefined" &&
-        (process.env.NEXT_PUBLIC_XKOVA_API_URL || process.env.XKOVA_API_URL)) ||
-      undefined;
-    if (envUrl) {
-      if (envUrl.startsWith("http")) return normalizeApiHost(envUrl);
-      const lower = envUrl.toLowerCase();
-      if (["local", "dev", "beta", "staging"].includes(lower)) {
-        return `https://api-${lower}.xkova.com`;
-      }
-    }
-
-    const env =
-      (typeof process !== "undefined" && process.env.XKOVA_ENV?.toLowerCase()) ||
-      undefined;
-    if (env && ["local", "dev", "beta", "staging"].includes(env)) {
-      return `https://api-${env}.xkova.com`;
-    }
-
-    return API_BASE_URL;
-  }, [apiBaseUrl]);
-
-  const apiHostResolved = useMemo(() => normalizeApiHost(resolveApiBase()), [resolveApiBase]);
+  const apiHostResolved = useMemo(() => resolveApiBase(), [resolveApiBase]);
 
   const apiBaseUrlResolved = useMemo(() => {
-    return `${apiHostResolved}/api/${API_VERSION}`;
+    return resolveCoreApiBaseUrl({
+      coreOrigin: apiHostResolved,
+      apiVersion: API_VERSION,
+    });
   }, [apiHostResolved]);
 
   const parseScope = (value: unknown): string[] => {

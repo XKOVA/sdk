@@ -15,10 +15,14 @@ export {
   exchangeAuthorizationCode,
   TokenValidationService,
   OAuthService,
+  normalizeOAuthBaseUrl,
+  shouldUseDevMode,
+  detectEnvironment,
 } from "./oauth.js";
 export * from "./api-client.js";
 export * from "./api-url.js";
 export * from "./auth-url.js";
+export * from "./runtime-url.js";
 export * from "./clients.js";
 export * from "./services.js";
 export * from "./payments/send-payment.js";

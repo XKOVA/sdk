@@ -5,7 +5,10 @@ import {
   createJwksWebhookVerifier,
   normalizeInstallationPayload,
   parseAgentWebhookPayload,
+  resolveAgentpassBaseUrl,
   resolveInstallationToken,
+  resolveJwksUrl,
+  resolveXkovaEnvironment,
   signManagedTransaction,
 } from "../dist/index.js";
 
@@ -45,6 +48,44 @@ test("parseAgentWebhookPayload discriminates direct and encoded webhook shapes",
   assert.equal(wrappedJwt?.payload.event, "transaction.finalized");
 
   assert.equal(parseAgentWebhookPayload([]), null);
+});
+
+test("resolveXkovaEnvironment accepts known values and rejects unknown values", () => {
+  assert.equal(resolveXkovaEnvironment("local"), "local");
+  assert.equal(resolveXkovaEnvironment("DEV"), "dev");
+
+  assert.throws(
+    () => resolveXkovaEnvironment(""),
+    /xkovaEnv is required/,
+  );
+  assert.throws(
+    () => resolveXkovaEnvironment("locall"),
+    /Unsupported xkovaEnv/,
+  );
+});
+
+test("resolveAgentpassBaseUrl and resolveJwksUrl never fall back to production implicitly", () => {
+  assert.equal(
+    resolveAgentpassBaseUrl("staging"),
+    "https://staging-core.xkova.com",
+  );
+  assert.equal(
+    resolveJwksUrl({ agentpassBaseUrl: "https://local-core.xkova.com" }),
+    "https://local-core.xkova.com/auth/.well-known/jwks.json",
+  );
+
+  assert.throws(
+    () => resolveAgentpassBaseUrl(undefined),
+    /xkovaEnv is required/,
+  );
+  assert.throws(
+    () => resolveJwksUrl({}),
+    /xkovaEnv is required/,
+  );
+  assert.throws(
+    () => resolveJwksUrl({ xkovaEnv: "qa" }),
+    /Unsupported xkovaEnv/,
+  );
 });
 
 test("normalizeInstallationPayload handles edge-field normalization without throwing", () => {
@@ -182,7 +223,7 @@ test("signManagedTransaction validates response shape and preserves idempotency 
     };
 
     const result = await signManagedTransaction({
-      agentpassBaseUrl: "https://auth.xkova.com",
+      agentpassBaseUrl: "https://core.xkova.com",
       agentActorId: "agent_1",
       installationJwt: "jwt_1",
       transaction: { to: "0xabc", data: "0x123", value: "0" },
@@ -190,7 +231,7 @@ test("signManagedTransaction validates response shape and preserves idempotency 
     });
 
     assert.equal(calls.length, 1);
-    assert.equal(calls[0].url, "https://auth.xkova.com/agents/agent_1/sign");
+    assert.equal(calls[0].url, "https://core.xkova.com/auth/agents/agent_1/sign");
     assert.equal(calls[0].init?.method, "POST");
     assert.equal(calls[0].init?.headers?.Authorization, "Bearer jwt_1");
 
@@ -213,7 +254,7 @@ test("signManagedTransaction validates response shape and preserves idempotency 
     await assert.rejects(
       () =>
         signManagedTransaction({
-          agentpassBaseUrl: "https://auth.xkova.com",
+          agentpassBaseUrl: "https://core.xkova.com",
           agentActorId: "agent_1",
           installationJwt: "jwt_1",
           transaction: { to: "0xabc", data: "0x123", value: "0" },

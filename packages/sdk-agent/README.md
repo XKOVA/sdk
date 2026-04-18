@@ -19,7 +19,6 @@ pnpm add @xkova/sdk-agent
 
 - `buildErc20TransferTx(params)`
 - `XKOVA_ENV_TO_AUTH_URL`
-- `DEFAULT_XKOVA_ENV`
 - `resolveXkovaEnvironment(rawValue)`
 - `resolveAgentpassBaseUrl(rawValue)`
 - `resolveJwksUrl(options?)`
@@ -41,6 +40,20 @@ pnpm add @xkova/sdk-agent
 - `token_budget_mode`
 - `install_inputs`
 
+## Runtime target resolution
+
+`@xkova/sdk-agent` expects an explicit runtime target and does not silently
+fall back to production.
+
+- Preferred: pass `agentpassBaseUrl` explicitly (`https://<core-host>` or `https://<core-host>/auth`).
+- Shorthand: `resolveAgentpassBaseUrl(xkovaEnv)` where `xkovaEnv` is required and must be one of:
+  - `local`
+  - `dev`
+  - `staging`
+  - `production`
+
+Unknown or empty `xkovaEnv` values throw.
+
 ## Quick Start
 
 ```js
@@ -54,7 +67,12 @@ import {
   signManagedTransaction,
 } from "@xkova/sdk-agent";
 
-const agentpassBaseUrl = resolveAgentpassBaseUrl(process.env.XKOVA_ENV);
+const agentpassBaseUrl =
+  process.env.XKOVA_CORE_URL ||
+  resolveAgentpassBaseUrl(process.env.XKOVA_ENV);
+if (!agentpassBaseUrl) {
+  throw new Error("Set XKOVA_CORE_URL or XKOVA_ENV");
+}
 const serviceId = process.env.SERVICE_ID;
 const serviceCredential = process.env.SERVICE_CREDENTIAL;
 
